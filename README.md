@@ -1,2 +1,3 @@
-# pbl_c
-Project Based Learning (PBL) in C
+# Project Based Learning (PBL) in C
+
+Learning C by making projects.
