@@ -9,6 +9,8 @@ typedef struct {
     float angle;
 } Ship;
 
+void ship_update(Ship *ship, float deltaTime);
+void ship_accelerate(Ship *ship, float acceleration);
 void ship_draw(Ship *ship);
 
 #endif
