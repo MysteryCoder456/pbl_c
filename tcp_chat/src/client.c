@@ -37,18 +37,37 @@ int main() {
 
     signal(SIGINT, interruptHandler);
 
+    // Accept username
+    printf("Enter a username: ");
+    char username[MAX_USERNAME + 2];
+    fgets(username, MAX_USERNAME + 2, stdin);
+
+    // Removes trailing linebreak
+    size_t usernameLength = strlen(username) - 1;
+    username[usernameLength] = '\0';
+    printf("Your username is: %s\n", username);
+
+    // Register username with server
+    msg_send(sockfd, MSG_REGISTER, username, usernameLength);
+
     while (keepRunning) {
         // Send a goofy ahh message to server
-        msg_send(sockfd, 0, "wassup meow", 11);
+        msg_send(sockfd, MSG_CHAT, "wassup meow", 11);
 
         // Receive server response
-        char *buf;
+        void *buf;
         message_size n;
-        if (msg_recv(sockfd, (void **)&buf, &n) == -1)
-            break;
 
-        printf("Server said: ");
-        printstr(buf, n);
+        // Process message
+        switch (msg_recv(sockfd, (void **)&buf, &n)) {
+        case MSG_CHAT:
+            printf("Server said: ");
+            printstr((char *)buf, n);
+            break;
+        case -1:
+            keepRunning = false;
+            break;
+        }
     }
 
     printf("Disconnected from server, exiting...\n");

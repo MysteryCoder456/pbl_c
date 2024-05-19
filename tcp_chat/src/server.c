@@ -1,5 +1,6 @@
 #include "common.h"
 #include <pthread.h>
+#include <stdbool.h>
 
 #define PORT "8000"
 #define BACKLOG 5
@@ -29,22 +30,43 @@ void *clienthandler(void *arg) {
                       sizeof(clientaddress));
     printf("New connection from %s!\n", clientaddress);
 
+    char username[MAX_USERNAME];
+    bool hasRegistered = false;
+    void *buf = NULL;
+
     while (1) {
+        if (buf != NULL)
+            free(buf);
+
         // Receive incoming message
-        char *buf;
         message_size n;
-        if (msg_recv(cd.sockfd, (void **)&buf, &n) == -1)
+        MsgType type;
+        if ((type = msg_recv(cd.sockfd, (void **)&buf, &n)) == -1)
             break;
 
+        if (!hasRegistered) {
+            // Register user
+            if (type == MSG_REGISTER) {
+                memcpy(username, buf, n > MAX_USERNAME ? MAX_USERNAME : n);
+                hasRegistered = true;
+                printf("Client %s registered as '%s'\n", clientaddress,
+                       username);
+            }
+
+            // Disregard any messages from client if not registered yet
+            continue;
+        }
+
         // Process message
-        printf("Client %s said: ", clientaddress);
-        printstr(buf, n);
-
-        // Free message buffer
-        free(buf);
-
-        // Respond to client
-        msg_send(cd.sockfd, 0, "ok bozo", 7);
+        switch (type) {
+        case MSG_CHAT:
+            printf("<%s> ", username);
+            printstr(buf, n);
+            msg_send(cd.sockfd, 0, "ok bozo", 7);
+            break;
+        default:
+            break;
+        }
     }
 
     // Print disconnection
