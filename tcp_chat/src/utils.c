@@ -17,7 +17,6 @@ void getsockaddrstring(struct sockaddr *addr, char *str, size_t str_size) {
 void printstr(char *str, size_t len) {
     for (int i = 0; i < len; i++)
         printf("%c", str[i]);
-    printf("\n");
 }
 
 size_t sendall(int socket, const void *buffer, size_t length, int flags) {

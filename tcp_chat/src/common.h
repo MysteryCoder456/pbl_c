@@ -10,13 +10,10 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "messages.h"
+#include "serialize.h"
 #include "utils.h"
 
 #define MAX_USERNAME 16
-
-typedef enum {
-    MSG_REGISTER,
-    MSG_CHAT,
-} MsgType;
 
 #endif

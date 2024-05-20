@@ -1,4 +1,5 @@
 #include "common.h"
+#include "serialize.h"
 #include <stdbool.h>
 
 #define SERVER_ADDR "127.0.0.1"
@@ -48,21 +49,36 @@ int main() {
     printf("Your username is: %s\n", username);
 
     // Register username with server
-    msg_send(sockfd, MSG_REGISTER, username, usernameLength);
+    Buffer regb;
+    serialize_registermsg(&regb, (RegisterMsg){usernameLength, username});
+    msg_send(sockfd, MSG_REGISTER, regb.data, regb.next);
+    free_buffer(&regb);
 
     while (keepRunning) {
-        // Send a goofy ahh message to server
-        msg_send(sockfd, MSG_CHAT, "wassup meow", 11);
+        // Send a message to server
+        Buffer chatb;
+        serialize_chatmsg(
+            &chatb, (ChatMsg){usernameLength, username, 11, "wassup meow"});
+        msg_send(sockfd, MSG_CHAT, chatb.data, chatb.next);
 
         // Receive server response
         void *buf;
         message_size n;
 
+        ChatMsg chatm;
+
         // Process message
         switch (msg_recv(sockfd, (void **)&buf, &n)) {
         case MSG_CHAT:
-            printf("Server said: ");
-            printstr((char *)buf, n);
+            chatm = deserialize_chatmsg(buf);
+
+            printf("<");
+            printstr(chatm.username, chatm.usernameLength);
+            printf("> ");
+            printstr(chatm.message, chatm.messageLength);
+            printf("\n");
+
+            free_deserialized_chatmsg(&chatm);
             break;
         case -1:
             keepRunning = false;

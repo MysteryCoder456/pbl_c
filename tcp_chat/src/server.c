@@ -31,6 +31,7 @@ void *clienthandler(void *arg) {
     printf("New connection from %s!\n", clientaddress);
 
     char username[MAX_USERNAME];
+    size_t usernameLength;
     bool hasRegistered = false;
     void *buf = NULL;
 
@@ -47,22 +48,39 @@ void *clienthandler(void *arg) {
         if (!hasRegistered) {
             // Register user
             if (type == MSG_REGISTER) {
-                memcpy(username, buf, n > MAX_USERNAME ? MAX_USERNAME : n);
+                RegisterMsg regm = deserialize_registermsg(buf);
+
+                memcpy(username, regm.username, regm.usernameLength);
+                usernameLength = regm.usernameLength;
                 hasRegistered = true;
-                printf("Client %s registered as '%s'\n", clientaddress,
-                       username);
+                printf("Client %s registered as ", clientaddress);
+                printstr(username, usernameLength);
+                printf("\n");
+
+                free_deserialized_registermsg(&regm);
             }
 
             // Disregard any messages from client if not registered yet
             continue;
         }
 
+        ChatMsg chatm;
+
         // Process message
         switch (type) {
         case MSG_CHAT:
-            printf("<%s> ", username);
-            printstr(buf, n);
-            msg_send(cd.sockfd, 0, "ok bozo", 7);
+            chatm = deserialize_chatmsg(buf);
+            free(chatm.username);
+            chatm.username = calloc(usernameLength, sizeof(char));
+            memcpy(chatm.username, username, usernameLength);
+            chatm.usernameLength = usernameLength;
+
+            Buffer chatb;
+            serialize_chatmsg(&chatb, chatm);
+            msg_send(cd.sockfd, MSG_CHAT, chatb.data, chatb.next);
+            free_buffer(&chatb);
+
+            free_deserialized_chatmsg(&chatm);
             break;
         default:
             break;

@@ -3,11 +3,11 @@ SRC_DIR := src
 .PHONY: all
 all: server.out client.out
 
-server.out: $(SRC_DIR)/server.o $(SRC_DIR)/utils.o
-	gcc $(SRC_DIR)/server.o $(SRC_DIR)/utils.o -o server.out
+server.out: $(SRC_DIR)/server.o $(SRC_DIR)/utils.o $(SRC_DIR)/serialize.o
+	gcc $(SRC_DIR)/server.o $(SRC_DIR)/utils.o $(SRC_DIR)/serialize.o -o server.out
 
-client.out: $(SRC_DIR)/client.o $(SRC_DIR)/utils.o
-	gcc $(SRC_DIR)/client.o $(SRC_DIR)/utils.o -o client.out
+client.out: $(SRC_DIR)/client.o $(SRC_DIR)/utils.o $(SRC_DIR)/serialize.o
+	gcc $(SRC_DIR)/client.o $(SRC_DIR)/utils.o $(SRC_DIR)/serialize.o -o client.out
 
 $(SRC_DIR)/server.o: $(SRC_DIR)/server.c
 	gcc -c $(SRC_DIR)/server.c -g -o $(SRC_DIR)/server.o
@@ -17,6 +17,9 @@ $(SRC_DIR)/client.o: $(SRC_DIR)/client.c
 
 $(SRC_DIR)/utils.o: $(SRC_DIR)/utils.c
 	gcc -c $(SRC_DIR)/utils.c -g -o $(SRC_DIR)/utils.o
+
+$(SRC_DIR)/serialize.o: $(SRC_DIR)/serialize.c
+	gcc -c $(SRC_DIR)/serialize.c -g -o $(SRC_DIR)/serialize.o
 
 .PHONY: clean
 clean:
