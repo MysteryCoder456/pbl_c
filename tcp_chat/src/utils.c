@@ -1,5 +1,5 @@
 #include "utils.h"
-#include "endian.h"
+#include "portable_endian.h"
 #include "serialize.h"
 #include <arpa/inet.h>
 #include <stdio.h>

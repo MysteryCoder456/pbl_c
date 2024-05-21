@@ -1,6 +1,6 @@
 #include "serialize.h"
-#include "endian.h"
 #include "messages.h"
+#include "portable_endian.h"
 #include <string.h>
 
 void free_buffer(Buffer *buffer) { free(buffer->data); }
