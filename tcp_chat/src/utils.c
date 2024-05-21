@@ -1,4 +1,5 @@
 #include "utils.h"
+#include "endian.h"
 #include "serialize.h"
 #include <arpa/inet.h>
 #include <stdio.h>
@@ -41,7 +42,7 @@ void msg_send(int socket, message_type type, const Buffer *buffer) {
     // Message `length` is cast to `unsigned long long` and used between
     // `msg_send()` and `msg_recv()`. The functions' users only ever
     // deal with the `message_size` type.
-    unsigned long long networkLength = htonll((unsigned long long)buffer->next);
+    message_size networkLength = htobe64(buffer->next);
 
     // Send message length, type and data
     sendall(socket, &networkLength, sizeof(networkLength), 0);
@@ -51,10 +52,10 @@ void msg_send(int socket, message_type type, const Buffer *buffer) {
 
 message_type msg_recv(int socket, Buffer *buffer) {
     // Length
-    unsigned long long networkLength;
+    message_size networkLength;
     if (recv(socket, &networkLength, sizeof(networkLength), 0) <= 0)
         return -1;
-    message_size msgLength = ntohll(networkLength);
+    message_size msgLength = be64toh(networkLength);
 
     // Type
     message_type type;

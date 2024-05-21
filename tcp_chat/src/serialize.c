@@ -1,4 +1,5 @@
 #include "serialize.h"
+#include "endian.h"
 #include "messages.h"
 #include <string.h>
 
@@ -24,7 +25,7 @@ char *deserialize_str(Buffer *buffer, size_t strlen) {
 void serialize_int(Buffer *buffer, uint32_t integer) {
     // TODO: Determine whether buffer has been allocated
 
-    uint32_t networkInt = htonl(integer);
+    uint32_t networkInt = htobe32(integer);
     memcpy((char *)buffer->data + buffer->next, &networkInt,
            sizeof(networkInt));
     buffer->next += sizeof(networkInt);
@@ -36,7 +37,7 @@ uint32_t deserialize_int(Buffer *buffer) {
            sizeof(networkInt));
 
     buffer->next += sizeof(networkInt);
-    return ntohl(networkInt);
+    return be32toh(networkInt);
 }
 
 // ————— RegisterMsg —————

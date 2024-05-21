@@ -2,10 +2,9 @@
 #define _UTILS_H
 
 #include "serialize.h"
-#include <stdlib.h>
 #include <sys/socket.h>
 
-typedef uint32_t message_size;
+typedef uint64_t message_size;
 typedef int8_t message_type;
 
 void getsockaddrstring(struct sockaddr *addr, char *str, size_t str_size);
