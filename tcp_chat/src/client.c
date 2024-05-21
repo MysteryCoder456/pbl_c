@@ -51,26 +51,30 @@ int main() {
     // Register username with server
     Buffer regb;
     serialize_registermsg(&regb, (RegisterMsg){usernameLength, username});
-    msg_send(sockfd, MSG_REGISTER, regb.data, regb.next);
+    msg_send(sockfd, MSG_REGISTER, &regb);
     free_buffer(&regb);
 
+    Buffer receivebuf;
+    receivebuf.data = NULL;
+
     while (keepRunning) {
+        if (receivebuf.data != NULL)
+            free_buffer(&receivebuf);
+
         // Send a message to server
         Buffer chatb;
         serialize_chatmsg(
             &chatb, (ChatMsg){usernameLength, username, 11, "wassup meow"});
-        msg_send(sockfd, MSG_CHAT, chatb.data, chatb.next);
+        msg_send(sockfd, MSG_CHAT, &chatb);
 
         // Receive server response
-        void *buf;
-        message_size n;
 
         ChatMsg chatm;
 
         // Process message
-        switch (msg_recv(sockfd, (void **)&buf, &n)) {
+        switch (msg_recv(sockfd, &receivebuf)) {
         case MSG_CHAT:
-            chatm = deserialize_chatmsg(buf);
+            chatm = deserialize_chatmsg(&receivebuf);
 
             printf("<");
             printstr(chatm.username, chatm.usernameLength);

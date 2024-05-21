@@ -11,15 +11,23 @@ typedef struct {
 
 void free_buffer(Buffer *buffer);
 
+// ————— Primitives —————
+/*
 void serialize_str(Buffer *buffer, char *str, size_t strlen);
-void serialize_int(Buffer *buffer, uint32_t integer);
+char *deserialize_str(Buffer *buffer, size_t strlen);
 
+void serialize_int(Buffer *buffer, uint32_t integer);
+uint32_t deserialize_int(Buffer *buffer);
+*/
+
+// ————— RegisterMsg —————
 void serialize_registermsg(Buffer *buffer, RegisterMsg msg);
-RegisterMsg deserialize_registermsg(const void *data);
+RegisterMsg deserialize_registermsg(Buffer *buffer);
 void free_deserialized_registermsg(RegisterMsg *msg);
 
+// ————— ChatMsg —————
 void serialize_chatmsg(Buffer *buffer, ChatMsg msg);
-ChatMsg deserialize_chatmsg(const void *data);
+ChatMsg deserialize_chatmsg(Buffer *buffer);
 void free_deserialized_chatmsg(ChatMsg *msg);
 
 #endif

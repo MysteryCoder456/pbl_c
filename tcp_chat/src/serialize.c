@@ -13,9 +13,11 @@ void serialize_str(Buffer *buffer, char *str, size_t strlen) {
     buffer->next += strlen;
 }
 
-char *deserialize_str(const void *data, size_t strlen) {
+char *deserialize_str(Buffer *buffer, size_t strlen) {
     char *str = calloc(strlen, sizeof(char));
-    memcpy(str, (char *)data, strlen);
+    memcpy(str, (char *)buffer->data + buffer->next, strlen);
+
+    buffer->next += strlen;
     return str;
 }
 
@@ -28,9 +30,12 @@ void serialize_int(Buffer *buffer, uint32_t integer) {
     buffer->next += sizeof(networkInt);
 }
 
-uint32_t deserialize_int(const void *data) {
+uint32_t deserialize_int(Buffer *buffer) {
     uint32_t networkInt;
-    memcpy(&networkInt, data, sizeof(networkInt));
+    memcpy(&networkInt, (char *)buffer->data + buffer->next,
+           sizeof(networkInt));
+
+    buffer->next += sizeof(networkInt);
     return ntohl(networkInt);
 }
 
@@ -44,17 +49,12 @@ void serialize_registermsg(Buffer *buffer, RegisterMsg msg) {
     serialize_str(buffer, msg.username, msg.usernameLength);
 }
 
-RegisterMsg deserialize_registermsg(const void *data) {
+RegisterMsg deserialize_registermsg(Buffer *buffer) {
     RegisterMsg msg;
-    size_t next = 0;
+    buffer->next = 0;
 
-    // TODO: Replace with `Buffer`
-
-    msg.usernameLength = deserialize_int((char *)data + next);
-    next += sizeof(msg.usernameLength);
-
-    msg.username = deserialize_str((char *)data + next, msg.usernameLength);
-    next += msg.usernameLength;
+    msg.usernameLength = deserialize_int(buffer);
+    msg.username = deserialize_str(buffer, msg.usernameLength);
 
     return msg;
 }
@@ -74,23 +74,14 @@ void serialize_chatmsg(Buffer *buffer, ChatMsg msg) {
     serialize_str(buffer, msg.message, msg.messageLength);
 }
 
-ChatMsg deserialize_chatmsg(const void *data) {
+ChatMsg deserialize_chatmsg(Buffer *buffer) {
     ChatMsg msg;
-    size_t next = 0;
+    buffer->next = 0;
 
-    // TODO: Replace with `Buffer`
-
-    msg.usernameLength = deserialize_int((char *)data + next);
-    next += sizeof(msg.usernameLength);
-
-    msg.username = deserialize_str((char *)data + next, msg.usernameLength);
-    next += msg.usernameLength;
-
-    msg.messageLength = deserialize_int((char *)data + next);
-    next += sizeof(msg.messageLength);
-
-    msg.message = deserialize_str((char *)data + next, msg.messageLength);
-    next += msg.messageLength;
+    msg.usernameLength = deserialize_int(buffer);
+    msg.username = deserialize_str(buffer, msg.usernameLength);
+    msg.messageLength = deserialize_int(buffer);
+    msg.message = deserialize_str(buffer, msg.messageLength);
 
     return msg;
 }

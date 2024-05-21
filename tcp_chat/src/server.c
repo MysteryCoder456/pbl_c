@@ -1,4 +1,5 @@
 #include "common.h"
+#include "serialize.h"
 #include <pthread.h>
 #include <stdbool.h>
 
@@ -33,22 +34,23 @@ void *clienthandler(void *arg) {
     char username[MAX_USERNAME];
     size_t usernameLength;
     bool hasRegistered = false;
-    void *buf = NULL;
+
+    Buffer receivebuf;
+    receivebuf.data = NULL;
 
     while (1) {
-        if (buf != NULL)
-            free(buf);
+        if (receivebuf.data != NULL)
+            free_buffer(&receivebuf);
 
         // Receive incoming message
-        message_size n;
         MsgType type;
-        if ((type = msg_recv(cd.sockfd, (void **)&buf, &n)) == -1)
+        if ((type = msg_recv(cd.sockfd, &receivebuf)) == -1)
             break;
 
         if (!hasRegistered) {
             // Register user
             if (type == MSG_REGISTER) {
-                RegisterMsg regm = deserialize_registermsg(buf);
+                RegisterMsg regm = deserialize_registermsg(&receivebuf);
 
                 memcpy(username, regm.username, regm.usernameLength);
                 usernameLength = regm.usernameLength;
@@ -69,15 +71,18 @@ void *clienthandler(void *arg) {
         // Process message
         switch (type) {
         case MSG_CHAT:
-            chatm = deserialize_chatmsg(buf);
+            chatm = deserialize_chatmsg(&receivebuf);
+
+            // Ensure user information is accurate
             free(chatm.username);
             chatm.username = calloc(usernameLength, sizeof(char));
             memcpy(chatm.username, username, usernameLength);
             chatm.usernameLength = usernameLength;
 
+            // Echo message to clients
             Buffer chatb;
             serialize_chatmsg(&chatb, chatm);
-            msg_send(cd.sockfd, MSG_CHAT, chatb.data, chatb.next);
+            msg_send(cd.sockfd, MSG_CHAT, &chatb);
             free_buffer(&chatb);
 
             free_deserialized_chatmsg(&chatm);

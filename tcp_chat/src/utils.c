@@ -1,4 +1,5 @@
 #include "utils.h"
+#include "serialize.h"
 #include <arpa/inet.h>
 #include <stdio.h>
 
@@ -36,26 +37,24 @@ size_t sendall(int socket, const void *buffer, size_t length, int flags) {
     return bytesSent;
 }
 
-void msg_send(int socket, message_type type, const void *buffer,
-              message_size length) {
+void msg_send(int socket, message_type type, const Buffer *buffer) {
     // Message `length` is cast to `unsigned long long` and used between
     // `msg_send()` and `msg_recv()`. The functions' users only ever
     // deal with the `message_size` type.
-    unsigned long long networkLength = htonll((unsigned long long)length);
+    unsigned long long networkLength = htonll((unsigned long long)buffer->next);
 
     // Send message length, type and data
     sendall(socket, &networkLength, sizeof(networkLength), 0);
     sendall(socket, &type, sizeof(type), 0);
-    sendall(socket, buffer, length, 0);
+    sendall(socket, buffer->data, buffer->next, 0);
 }
 
-message_type msg_recv(int socket, void **buffer, message_size *length) {
+message_type msg_recv(int socket, Buffer *buffer) {
     // Length
     unsigned long long networkLength;
     if (recv(socket, &networkLength, sizeof(networkLength), 0) <= 0)
         return -1;
-    message_size msgLength = (message_size)ntohll(networkLength);
-    *length = msgLength;
+    message_size msgLength = ntohll(networkLength);
 
     // Type
     message_type type;
@@ -63,12 +62,11 @@ message_type msg_recv(int socket, void **buffer, message_size *length) {
         return -1;
 
     // Data
-    void *msg = malloc(msgLength);
-    if (recv(socket, msg, msgLength, 0) <= 0) {
-        free(msg);
+    buffer->data = malloc(msgLength);
+    if (recv(socket, buffer->data, msgLength, 0) <= 0) {
+        free_buffer(buffer);
         return -1;
     }
-    *buffer = msg;
 
     return type;
 }
