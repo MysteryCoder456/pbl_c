@@ -3,7 +3,7 @@
 #include <stdbool.h>
 
 #define SERVER_ADDR "127.0.0.1"
-#define SERVER_PORT "8000"
+#define SERVER_PORT "42069"
 
 volatile bool keepRunning = false;
 int sockfd;

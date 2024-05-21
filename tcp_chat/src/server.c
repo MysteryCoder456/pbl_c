@@ -3,7 +3,7 @@
 #include <pthread.h>
 #include <stdbool.h>
 
-#define PORT "8000"
+#define PORT "42069"
 #define BACKLOG 5
 
 int listener;
