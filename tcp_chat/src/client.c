@@ -61,10 +61,19 @@ int main() {
         if (receivebuf.data != NULL)
             free_buffer(&receivebuf);
 
-        // Send a message to server
+        // Accept message content from user
+        char content[256 + 1];
+        printf("> ");
+        fgets(content, 256 + 1, stdin);
+
+        // Removes trailing linebreak
+        size_t contentLength = strlen(content) - 1;
+        content[contentLength] = '\0';
+
+        // Send message to server
         Buffer chatb;
-        serialize_chatmsg(
-            &chatb, (ChatMsg){usernameLength, username, 11, "wassup meow"});
+        serialize_chatmsg(&chatb, (ChatMsg){usernameLength, username,
+                                            contentLength, content});
         msg_send(sockfd, MSG_CHAT, &chatb);
 
         // Receive server response
