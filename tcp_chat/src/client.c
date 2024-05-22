@@ -1,6 +1,8 @@
 #include "common.h"
 #include "serialize.h"
+#include <poll.h>
 #include <stdbool.h>
+#include <sys/poll.h>
 
 #define SERVER_ADDR "127.0.0.1"
 #define SERVER_PORT "42069"
@@ -8,10 +10,47 @@
 volatile bool keepRunning = false;
 int sockfd;
 
-void interruptHandler() {
-    // Close server listener socket
-    close(sockfd);
-    keepRunning = false;
+void interruptHandler() { keepRunning = false; }
+
+int handle_incoming(int socket) {
+    Buffer receivebuf;
+    ChatMsg chatm;
+
+    // Process message
+    switch (msg_recv(socket, &receivebuf)) {
+    case MSG_CHAT:
+        chatm = deserialize_chatmsg(&receivebuf);
+
+        printf("<");
+        printstr(chatm.username, chatm.usernameLength);
+        printf("> ");
+        printstr(chatm.message, chatm.messageLength);
+        printf("\n");
+
+        free_deserialized_chatmsg(&chatm);
+        break;
+    case -1:
+        keepRunning = false;
+        return -1;
+    }
+
+    free_buffer(&receivebuf);
+    return 0;
+}
+
+void handle_stdin(int socket) {
+    // Accept message content from user
+    char content[256 + 1];
+    fgets(content, sizeof(content), stdin);
+
+    // Removes trailing linebreak
+    size_t contentLength = strlen(content) - 1;
+    content[contentLength] = '\0';
+
+    // Send message to server
+    Buffer chatb;
+    serialize_chatmsg(&chatb, (ChatMsg){0, "", contentLength, content});
+    msg_send(sockfd, MSG_CHAT, &chatb);
 }
 
 int main() {
@@ -54,49 +93,33 @@ int main() {
     msg_send(sockfd, MSG_REGISTER, &regb);
     free_buffer(&regb);
 
-    Buffer receivebuf;
-    receivebuf.data = NULL;
-
     while (keepRunning) {
-        if (receivebuf.data != NULL)
-            free_buffer(&receivebuf);
+        struct pollfd poll_fds[2];
 
-        // Accept message content from user
-        char content[256 + 1];
-        printf("> ");
-        fgets(content, 256 + 1, stdin);
+        // stdin
+        poll_fds[0].fd = STDIN_FILENO;
+        poll_fds[0].events = POLLIN;
 
-        // Removes trailing linebreak
-        size_t contentLength = strlen(content) - 1;
-        content[contentLength] = '\0';
+        // socket
+        poll_fds[1].fd = sockfd;
+        poll_fds[1].events = POLLIN;
 
-        // Send message to server
-        Buffer chatb;
-        serialize_chatmsg(&chatb, (ChatMsg){usernameLength, username,
-                                            contentLength, content});
-        msg_send(sockfd, MSG_CHAT, &chatb);
-
-        // Receive server response
-
-        ChatMsg chatm;
-
-        // Process message
-        switch (msg_recv(sockfd, &receivebuf)) {
-        case MSG_CHAT:
-            chatm = deserialize_chatmsg(&receivebuf);
-
-            printf("<");
-            printstr(chatm.username, chatm.usernameLength);
-            printf("> ");
-            printstr(chatm.message, chatm.messageLength);
-            printf("\n");
-
-            free_deserialized_chatmsg(&chatm);
+        // Begin polling
+        if (poll(poll_fds, 2, -1) == -1)
             break;
-        case -1:
-            keepRunning = false;
+
+        // Check socket disconnection
+        if ((poll_fds[1].revents & POLLHUP) == POLLHUP)
             break;
-        }
+
+        // Send messages to server
+        if ((poll_fds[0].revents & POLLIN) == POLLIN)
+            handle_stdin(sockfd);
+
+        // Receive incoming server messages
+        if ((poll_fds[1].revents & POLLIN) == POLLIN &&
+            handle_incoming(sockfd) == -1)
+            break;
     }
 
     printf("Disconnected from server, exiting...\n");
