@@ -16,6 +16,7 @@ typedef struct clientdata {
 
 int listener;
 clientdata *clients = NULL; // Linked list
+pthread_mutex_t clients_lock;
 
 void interruptHandler() {
     // Close server listener socket
@@ -84,8 +85,12 @@ void *clienthandler(void *arg) {
             // Echo message to all clients
             Buffer chatb;
             serialize_chatmsg(&chatb, chatm);
+            pthread_mutex_lock(&clients_lock);
+
             for (clientdata *c = clients; c != NULL; c = c->next)
                 msg_send(c->sockfd, MSG_CHAT, &chatb);
+
+            pthread_mutex_unlock(&clients_lock);
             free_buffer(&chatb);
 
             free_deserialized_chatmsg(&chatm);
@@ -100,11 +105,15 @@ void *clienthandler(void *arg) {
     close(cd.sockfd);
 
     // Remove from linked list
+    pthread_mutex_lock(&clients_lock);
     clientdata *cd_arg = (clientdata *)arg;
+
     if (cd_arg->prev != NULL)
         cd_arg->prev->next = cd_arg->next;
     if (cd_arg->next != NULL)
         cd_arg->next->prev = cd_arg->prev;
+
+    pthread_mutex_unlock(&clients_lock);
     free(cd_arg);
 
     return NULL;
@@ -142,6 +151,7 @@ int main() {
     printf("Listening at %s:%s\n", hostaddress, PORT);
 
     signal(SIGINT, interruptHandler);
+    pthread_mutex_init(&clients_lock, NULL);
 
     // Accept a new connection
     while (1) {
@@ -173,6 +183,7 @@ int main() {
         data->thread = clientthread;
     }
 
+    pthread_mutex_destroy(&clients_lock);
     close(listener);
     return 0;
 }
