@@ -6,24 +6,26 @@
 #define PORT "42069"
 #define BACKLOG 5
 
+typedef struct clientdata {
+    int sockfd;
+    struct sockaddr_storage addr;
+    pthread_t thread;
+    struct clientdata *prev;
+    struct clientdata *next;
+} clientdata;
+
 int listener;
+clientdata *clients = NULL; // Linked list
 
 void interruptHandler() {
     // Close server listener socket
     close(listener);
 }
 
-/// Used to pass data into `clienthandler`.
-typedef struct {
-    int sockfd;
-    struct sockaddr_storage addr;
-} clientdata;
-
 /// Receive text and echo back to client.
 void *clienthandler(void *arg) {
     // Move client data into function
     clientdata cd = *(clientdata *)arg;
-    free(arg);
 
     // Print new connection
     char clientaddress[32 + 1];
@@ -79,10 +81,11 @@ void *clienthandler(void *arg) {
             memcpy(chatm.username, username, usernameLength);
             chatm.usernameLength = usernameLength;
 
-            // Echo message to clients
+            // Echo message to all clients
             Buffer chatb;
             serialize_chatmsg(&chatb, chatm);
-            msg_send(cd.sockfd, MSG_CHAT, &chatb);
+            for (clientdata *c = clients; c != NULL; c = c->next)
+                msg_send(c->sockfd, MSG_CHAT, &chatb);
             free_buffer(&chatb);
 
             free_deserialized_chatmsg(&chatm);
@@ -92,10 +95,18 @@ void *clienthandler(void *arg) {
         }
     }
 
-    // Print disconnection
+    // Disconnection
     printf("Connection closed by %s\n", clientaddress);
-
     close(cd.sockfd);
+
+    // Remove from linked list
+    clientdata *cd_arg = (clientdata *)arg;
+    if (cd_arg->prev != NULL)
+        cd_arg->prev->next = cd_arg->next;
+    if (cd_arg->next != NULL)
+        cd_arg->next->prev = cd_arg->prev;
+    free(cd_arg);
+
     return NULL;
 }
 
@@ -142,16 +153,24 @@ int main() {
         if (clientfd < 0)
             break;
 
-        // Handle client in a new thread
-
+        // Create client data
         clientdata *data = malloc(sizeof(clientdata));
         data->sockfd = clientfd;
         data->addr = clientaddr;
+        data->prev = NULL;
+        data->next = NULL;
 
+        // Update clients linked list
+        if (clients != NULL) {
+            clients->prev = data;
+            data->next = clients;
+        }
+        clients = data;
+
+        // Handle client in a new thread
         pthread_t clientthread;
         pthread_create(&clientthread, NULL, clienthandler, data);
-
-        // TODO: store client threads
+        data->thread = clientthread;
     }
 
     close(listener);
