@@ -1,7 +1,6 @@
 #include "common.h"
 #include "serialize.h"
 #include <pthread.h>
-#include <stdbool.h>
 
 #define PORT "42069"
 #define BACKLOG 5
@@ -139,13 +138,14 @@ int main() {
     listener = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
 
     if (bind(listener, res->ai_addr, res->ai_addrlen) != 0) {
-        printf("Failed to bind socket to address %s:%s\n", hostaddress, PORT);
+        printf("Failed to bind socket to address %s:%s: %s\n", hostaddress,
+               PORT, strerror(errno));
         return 1;
     }
     freeaddrinfo(res);
 
     if (listen(listener, BACKLOG) != 0) {
-        printf("Failed to listen for connections\n");
+        printf("Failed to listen for connections: %s\n", strerror(errno));
         return 1;
     }
     printf("Listening at %s:%s\n", hostaddress, PORT);

@@ -1,11 +1,6 @@
 #include "common.h"
 #include "serialize.h"
 #include <poll.h>
-#include <stdbool.h>
-#include <sys/poll.h>
-
-#define SERVER_ADDR "127.0.0.1"
-#define SERVER_PORT "42069"
 
 volatile bool keepRunning = false;
 int sockfd;
@@ -54,21 +49,48 @@ void handle_stdin(int socket) {
 }
 
 int main() {
+    // Accept server address and port
+    char *serveraddr;
+    char *serverport;
+    size_t serverlen;
+
+    // HACK: we can do better
+    char userserveraddr[64 + 2] = "127.0.0.1";
+    printf("Enter server address (127.0.0.1): ");
+    fgets(userserveraddr, 64 + 2, stdin);
+    serverlen = strlen(userserveraddr) - 1;
+    userserveraddr[serverlen] = '\0';
+    if (serverlen <= 0)
+        serveraddr = "127.0.0.1";
+    else
+        serveraddr = userserveraddr;
+
+    // HACK: we can do better
+    char userserverport[5 + 2];
+    printf("Enter server port (42069): ");
+    fgets(userserverport, 5 + 2, stdin);
+    serverlen = strlen(userserverport) - 1;
+    userserverport[serverlen] = '\0';
+    if (serverlen <= 0)
+        serverport = "42069";
+    else
+        serverport = userserverport;
+
     // Generate server address info
     struct addrinfo hints, *res;
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
 
-    if (getaddrinfo(SERVER_ADDR, SERVER_PORT, &hints, &res) != 0) {
-        printf("Failed to get server address info\n");
+    if (getaddrinfo(serveraddr, serverport, &hints, &res) != 0) {
+        printf("Failed to get server address info: %s\n", strerror(errno));
         return 1;
     }
 
     // Create socket and connect to server
     sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
     if (connect(sockfd, res->ai_addr, res->ai_addrlen) != 0) {
-        printf("Failed to connect to server\n");
+        printf("Failed to connect to server: %s\n", strerror(errno));
         return 1;
     }
     keepRunning = true;
