@@ -37,6 +37,7 @@ void handle_stdin(int socket) {
     // Accept message content from user
     char content[256 + 1];
     fgets(content, sizeof(content), stdin);
+    printf("\033[A                             \033[A\n");
 
     // Removes trailing linebreak
     size_t contentLength = strlen(content) - 1;
