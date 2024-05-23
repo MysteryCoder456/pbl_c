@@ -91,3 +91,27 @@ void free_deserialized_chatmsg(ChatMsg *msg) {
     free(msg->username);
     free(msg->message);
 }
+
+// ————— DisconnectMsg —————
+
+void serialize_disconnectmsg(Buffer *buffer, DisconnectMsg msg) {
+    buffer->data = malloc(msg.usernameLength + sizeof(msg.usernameLength));
+    buffer->next = 0;
+
+    serialize_int(buffer, msg.usernameLength);
+    serialize_str(buffer, msg.username, msg.usernameLength);
+}
+
+DisconnectMsg deserialize_disconnectmsg(Buffer *buffer) {
+    DisconnectMsg msg;
+    buffer->next = 0;
+
+    msg.usernameLength = deserialize_int(buffer);
+    msg.username = deserialize_str(buffer, msg.usernameLength);
+
+    return msg;
+}
+
+void free_deserialized_disconnectmsg(DisconnectMsg *msg) {
+    free(msg->username);
+}

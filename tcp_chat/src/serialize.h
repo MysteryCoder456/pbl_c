@@ -30,4 +30,9 @@ void serialize_chatmsg(Buffer *buffer, ChatMsg msg);
 ChatMsg deserialize_chatmsg(Buffer *buffer);
 void free_deserialized_chatmsg(ChatMsg *msg);
 
+// ————— DisconnectMsg —————
+void serialize_disconnectmsg(Buffer *buffer, DisconnectMsg msg);
+DisconnectMsg deserialize_disconnectmsg(Buffer *buffer);
+void free_deserialized_disconnectmsg(DisconnectMsg *msg);
+
 #endif

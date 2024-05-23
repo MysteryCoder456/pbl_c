@@ -6,6 +6,7 @@
 typedef enum {
     MSG_REGISTER,
     MSG_CHAT,
+    MSG_DISCONNECT,
 } MsgType;
 
 #pragma pack(push, 1)
@@ -21,6 +22,11 @@ typedef struct {
     uint32_t messageLength;
     char *message;
 } ChatMsg;
+
+typedef struct {
+    uint32_t usernameLength;
+    char *username;
+} DisconnectMsg;
 
 #pragma pack(pop)
 

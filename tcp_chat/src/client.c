@@ -1,5 +1,4 @@
 #include "common.h"
-#include "serialize.h"
 #include <poll.h>
 
 volatile bool keepRunning = false;
@@ -9,21 +8,46 @@ void interruptHandler() { keepRunning = false; }
 
 int handle_incoming(int socket) {
     Buffer receivebuf;
-    ChatMsg chatm;
+    union {
+        RegisterMsg regis;
+        ChatMsg chat;
+        DisconnectMsg disc;
+    } msg;
 
     // Process message
     switch (msg_recv(socket, &receivebuf)) {
+    case MSG_REGISTER:
+        msg.regis = deserialize_registermsg(&receivebuf);
+
+        printf("\n");
+        printstr(msg.regis.username, msg.regis.usernameLength);
+        printf(" HAS JOINED THE CHAT\n\n");
+
+        free_deserialized_registermsg(&msg.regis);
+        break;
+
     case MSG_CHAT:
-        chatm = deserialize_chatmsg(&receivebuf);
+        msg.chat = deserialize_chatmsg(&receivebuf);
 
         printf("<");
-        printstr(chatm.username, chatm.usernameLength);
+        printstr(msg.chat.username, msg.chat.usernameLength);
         printf("> ");
-        printstr(chatm.message, chatm.messageLength);
+        printstr(msg.chat.message, msg.chat.messageLength);
         printf("\n");
 
-        free_deserialized_chatmsg(&chatm);
+        free_deserialized_chatmsg(&msg.chat);
         break;
+
+    case MSG_DISCONNECT:
+        msg.disc = deserialize_disconnectmsg(&receivebuf);
+
+        printf("\n");
+        printstr(msg.regis.username, msg.regis.usernameLength);
+        printf(" HAS LEFT THE CHAT\n\n");
+
+        free_deserialized_disconnectmsg(&msg.disc);
+        break;
+
     case -1:
         keepRunning = false;
         return -1;
@@ -108,7 +132,7 @@ int main() {
     // Removes trailing linebreak
     size_t usernameLength = strlen(username) - 1;
     username[usernameLength] = '\0';
-    printf("Your username is: %s\n", username);
+    // printf("Your username is: %s\n", username);
 
     // Register username with server
     Buffer regb;

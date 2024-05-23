@@ -1,5 +1,4 @@
 #include "common.h"
-#include "serialize.h"
 #include <pthread.h>
 
 #define PORT "42069"
@@ -27,6 +26,13 @@ void clientdata_init(clientdata *data, int socket,
     data->addr = addr;
     data->prev = NULL;
     data->next = NULL;
+}
+
+void broadcast_msg(message_type mtype, const Buffer *buffer) {
+    pthread_mutex_lock(&clients_lock);
+    for (clientdata *c = clients; c != NULL; c = c->next)
+        msg_send(c->sockfd, mtype, buffer);
+    pthread_mutex_unlock(&clients_lock);
 }
 
 /// Receive text and echo back to client.
@@ -68,6 +74,7 @@ void *clienthandler(void *arg) {
                 printstr(username, usernameLength);
                 printf("\n");
 
+                broadcast_msg(MSG_REGISTER, &receivebuf);
                 free_deserialized_registermsg(&regm);
             }
 
@@ -91,12 +98,7 @@ void *clienthandler(void *arg) {
             // Echo message to all clients
             Buffer chatb;
             serialize_chatmsg(&chatb, chatm);
-            pthread_mutex_lock(&clients_lock);
-
-            for (clientdata *c = clients; c != NULL; c = c->next)
-                msg_send(c->sockfd, MSG_CHAT, &chatb);
-
-            pthread_mutex_unlock(&clients_lock);
+            broadcast_msg(MSG_CHAT, &chatb);
             free_buffer(&chatb);
 
             free_deserialized_chatmsg(&chatm);
@@ -105,10 +107,6 @@ void *clienthandler(void *arg) {
             break;
         }
     }
-
-    // Disconnection
-    printf("Connection closed by %s\n", clientaddress);
-    close(cd.sockfd);
 
     // Remove from linked list
     pthread_mutex_lock(&clients_lock);
@@ -124,6 +122,16 @@ void *clienthandler(void *arg) {
 
     pthread_mutex_unlock(&clients_lock);
     free(cd_arg);
+
+    // Disconnection
+    close(cd.sockfd);
+    printstr(username, usernameLength);
+    printf(" has disconnected\n");
+
+    // Broadcast disconnection
+    Buffer disb;
+    serialize_disconnectmsg(&disb, (DisconnectMsg){usernameLength, username});
+    broadcast_msg(MSG_DISCONNECT, &disb);
 
     return NULL;
 }
