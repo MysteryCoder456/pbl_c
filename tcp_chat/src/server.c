@@ -8,7 +8,6 @@
 typedef struct clientdata {
     int sockfd;
     struct sockaddr_storage addr;
-    pthread_t thread;
     struct clientdata *prev;
     struct clientdata *next;
 } clientdata;
@@ -20,6 +19,14 @@ pthread_mutex_t clients_lock;
 void interruptHandler() {
     // Close server listener socket
     close(listener);
+}
+
+void clientdata_init(clientdata *data, int socket,
+                     struct sockaddr_storage addr) {
+    data->sockfd = socket;
+    data->addr = addr;
+    data->prev = NULL;
+    data->next = NULL;
 }
 
 /// Receive text and echo back to client.
@@ -112,6 +119,9 @@ void *clienthandler(void *arg) {
     if (cd_arg->next != NULL)
         cd_arg->next->prev = cd_arg->prev;
 
+    if (cd_arg == clients)
+        clients = cd_arg->next;
+
     pthread_mutex_unlock(&clients_lock);
     free(cd_arg);
 
@@ -165,10 +175,7 @@ int main() {
 
         // Create client data
         clientdata *data = malloc(sizeof(clientdata));
-        data->sockfd = clientfd;
-        data->addr = clientaddr;
-        data->prev = NULL;
-        data->next = NULL;
+        clientdata_init(data, clientfd, clientaddr);
 
         // Update clients linked list
         if (clients != NULL) {
@@ -180,7 +187,6 @@ int main() {
         // Handle client in a new thread
         pthread_t clientthread;
         pthread_create(&clientthread, NULL, clienthandler, data);
-        data->thread = clientthread;
     }
 
     pthread_mutex_destroy(&clients_lock);
