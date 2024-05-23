@@ -19,6 +19,7 @@ int handle_incoming(int socket) {
     case MSG_REGISTER:
         msg.regis = deserialize_registermsg(&receivebuf);
 
+        // TODO: ASCII art of username
         printf("\n");
         printstr(msg.regis.username, msg.regis.usernameLength);
         printf(" HAS JOINED THE CHAT\n\n");
