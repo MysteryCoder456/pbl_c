@@ -50,6 +50,7 @@ int handle_incoming(int socket) {
         break;
 
     case -1:
+        printf("Failed to receive message: %s\n", strerror(errno));
         keepRunning = false;
         return -1;
     }
@@ -70,8 +71,10 @@ void handle_stdin(int socket) {
 
     // Send message to server
     Buffer chatb;
-    serialize_chatmsg(&chatb, (ChatMsg){0, "", contentLength, content});
-    msg_send(sockfd, MSG_CHAT, &chatb);
+    if (serialize_chatmsg(&chatb, (ChatMsg){0, "", contentLength, content}) > 0)
+        msg_send(sockfd, MSG_CHAT, &chatb);
+    else
+        printf("Failed to serialize chat message: %s\n", strerror(errno));
 }
 
 int main() {
@@ -137,7 +140,12 @@ int main() {
 
     // Register username with server
     Buffer regb;
-    serialize_registermsg(&regb, (RegisterMsg){usernameLength, username});
+    if (serialize_registermsg(&regb, (RegisterMsg){usernameLength, username}) <=
+        0) {
+        printf("Failed to serialize register message: %s\n", strerror(errno));
+        close(sockfd);
+        return 1;
+    }
     msg_send(sockfd, MSG_REGISTER, &regb);
     free_buffer(&regb);
 

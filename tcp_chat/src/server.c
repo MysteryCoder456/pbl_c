@@ -59,8 +59,10 @@ void *clienthandler(void *arg) {
 
         // Receive incoming message
         MsgType type;
-        if ((type = msg_recv(cd.sockfd, &receivebuf)) == -1)
+        if ((type = msg_recv(cd.sockfd, &receivebuf)) == -1) {
+            printf("Failed to receive message: %s\n", strerror(errno));
             break;
+        }
 
         if (!hasRegistered) {
             // Register user
@@ -97,9 +99,13 @@ void *clienthandler(void *arg) {
 
             // Echo message to all clients
             Buffer chatb;
-            serialize_chatmsg(&chatb, chatm);
-            broadcast_msg(MSG_CHAT, &chatb);
-            free_buffer(&chatb);
+            if (serialize_chatmsg(&chatb, chatm) > 0) {
+                broadcast_msg(MSG_CHAT, &chatb);
+                free_buffer(&chatb);
+            } else {
+                printf("Failed to serialize chat message: %s\n",
+                       strerror(errno));
+            }
 
             free_deserialized_chatmsg(&chatm);
             break;
@@ -130,8 +136,13 @@ void *clienthandler(void *arg) {
 
     // Broadcast disconnection
     Buffer disb;
-    serialize_disconnectmsg(&disb, (DisconnectMsg){usernameLength, username});
-    broadcast_msg(MSG_DISCONNECT, &disb);
+
+    if (serialize_disconnectmsg(
+            &disb, (DisconnectMsg){usernameLength, username}) > 0) {
+        broadcast_msg(MSG_DISCONNECT, &disb);
+    } else {
+        printf("Failed to serialize disconnect message: %s\n", strerror(errno));
+    }
 
     return NULL;
 }
@@ -183,6 +194,13 @@ int main() {
 
         // Create client data
         clientdata *data = malloc(sizeof(clientdata));
+
+        if (!data) {
+            printf("Failed to allocate client data: %s", strerror(errno));
+            close(clientfd);
+            continue;
+        }
+
         clientdata_init(data, clientfd, clientaddr);
 
         // Update clients linked list

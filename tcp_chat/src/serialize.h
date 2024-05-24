@@ -21,17 +21,17 @@ uint32_t deserialize_int(Buffer *buffer);
 */
 
 // ————— RegisterMsg —————
-void serialize_registermsg(Buffer *buffer, RegisterMsg msg);
+size_t serialize_registermsg(Buffer *buffer, RegisterMsg msg);
 RegisterMsg deserialize_registermsg(Buffer *buffer);
 void free_deserialized_registermsg(RegisterMsg *msg);
 
 // ————— ChatMsg —————
-void serialize_chatmsg(Buffer *buffer, ChatMsg msg);
+size_t serialize_chatmsg(Buffer *buffer, ChatMsg msg);
 ChatMsg deserialize_chatmsg(Buffer *buffer);
 void free_deserialized_chatmsg(ChatMsg *msg);
 
 // ————— DisconnectMsg —————
-void serialize_disconnectmsg(Buffer *buffer, DisconnectMsg msg);
+size_t serialize_disconnectmsg(Buffer *buffer, DisconnectMsg msg);
 DisconnectMsg deserialize_disconnectmsg(Buffer *buffer);
 void free_deserialized_disconnectmsg(DisconnectMsg *msg);
 

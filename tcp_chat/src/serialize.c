@@ -42,12 +42,17 @@ uint32_t deserialize_int(Buffer *buffer) {
 
 // ————— RegisterMsg —————
 
-void serialize_registermsg(Buffer *buffer, RegisterMsg msg) {
+size_t serialize_registermsg(Buffer *buffer, RegisterMsg msg) {
     buffer->data = malloc(msg.usernameLength + sizeof(msg.usernameLength));
     buffer->next = 0;
 
+    if (!buffer->data)
+        return 0;
+
     serialize_int(buffer, msg.usernameLength);
     serialize_str(buffer, msg.username, msg.usernameLength);
+
+    return buffer->next;
 }
 
 RegisterMsg deserialize_registermsg(Buffer *buffer) {
@@ -64,15 +69,20 @@ void free_deserialized_registermsg(RegisterMsg *msg) { free(msg->username); }
 
 // ————— ChatMsg —————
 
-void serialize_chatmsg(Buffer *buffer, ChatMsg msg) {
+size_t serialize_chatmsg(Buffer *buffer, ChatMsg msg) {
     buffer->data = malloc(msg.usernameLength + sizeof(msg.usernameLength) +
                           msg.messageLength + sizeof(msg.messageLength));
     buffer->next = 0;
+
+    if (!buffer->data)
+        return 0;
 
     serialize_int(buffer, msg.usernameLength);
     serialize_str(buffer, msg.username, msg.usernameLength);
     serialize_int(buffer, msg.messageLength);
     serialize_str(buffer, msg.message, msg.messageLength);
+
+    return buffer->next;
 }
 
 ChatMsg deserialize_chatmsg(Buffer *buffer) {
@@ -94,12 +104,17 @@ void free_deserialized_chatmsg(ChatMsg *msg) {
 
 // ————— DisconnectMsg —————
 
-void serialize_disconnectmsg(Buffer *buffer, DisconnectMsg msg) {
+size_t serialize_disconnectmsg(Buffer *buffer, DisconnectMsg msg) {
     buffer->data = malloc(msg.usernameLength + sizeof(msg.usernameLength));
     buffer->next = 0;
 
+    if (!buffer->data)
+        return 0;
+
     serialize_int(buffer, msg.usernameLength);
     serialize_str(buffer, msg.username, msg.usernameLength);
+
+    return buffer->next;
 }
 
 DisconnectMsg deserialize_disconnectmsg(Buffer *buffer) {

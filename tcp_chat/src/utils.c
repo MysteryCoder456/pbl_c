@@ -39,9 +39,6 @@ size_t sendall(int socket, const void *buffer, size_t length, int flags) {
 }
 
 void msg_send(int socket, message_type type, const Buffer *buffer) {
-    // Message `length` is cast to `unsigned long long` and used between
-    // `msg_send()` and `msg_recv()`. The functions' users only ever
-    // deal with the `message_size` type.
     message_size networkLength = htobe64(buffer->next);
 
     // Send message length, type and data
@@ -64,6 +61,10 @@ message_type msg_recv(int socket, Buffer *buffer) {
 
     // Data
     buffer->data = malloc(msgLength);
+
+    if (!buffer->data)
+        return -1;
+
     if (recv(socket, buffer->data, msgLength, 0) <= 0) {
         free_buffer(buffer);
         return -1;
