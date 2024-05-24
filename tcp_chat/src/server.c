@@ -60,7 +60,8 @@ void *clienthandler(void *arg) {
         // Receive incoming message
         MsgType type;
         if ((type = msg_recv(cd.sockfd, &receivebuf)) == -1) {
-            printf("Failed to receive message: %s\n", strerror(errno));
+            if (errno > 0)
+                printf("Failed to receive message: %s\n", strerror(errno));
             break;
         }
 
@@ -69,8 +70,10 @@ void *clienthandler(void *arg) {
             if (type == MSG_REGISTER) {
                 RegisterMsg regm = deserialize_registermsg(&receivebuf);
 
-                memcpy(username, regm.username, regm.usernameLength);
-                usernameLength = regm.usernameLength;
+                usernameLength = regm.usernameLength <= MAX_USERNAME
+                                     ? regm.usernameLength
+                                     : MAX_USERNAME;
+                memcpy(username, regm.username, usernameLength);
                 hasRegistered = true;
                 printf("Client %s registered as ", clientaddress);
                 printstr(username, usernameLength);
